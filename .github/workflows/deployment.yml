@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -52,6 +52,7 @@ jobs:
             sudo docker run -d \
               --name xai-traderx-container \
               --env-file .env \
+              -v /home/ubuntu/xai_traderx/database:/app/database \
               -p 8501:8501 -p 8000:8000 \
               ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           EOF
