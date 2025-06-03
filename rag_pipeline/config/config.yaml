@@ -1,0 +1,18 @@
+# database:
+#   path: F:/Xai_traderx/database/stock_data.db
+
+# llm:
+#   model_name: "gemini-1.5-flash"
+#   device: "api"
+#   api_key: 
+
+# embedding:
+#   model_name: all-MiniLM-L6-v2
+
+# chroma:
+#   persist_directory: "./rag_pipeline/vector_store/chroma_db"
+#   collection_name: "trading_data"
+
+# scheduler:
+#   update_interval: "daily"
+#   update_time: "00:00"

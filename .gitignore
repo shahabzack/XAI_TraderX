@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+xaitrade/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environment
+.env
+
+# Logs
+*.log
+logs/
+app/logs/
+
+# Database
+database/
+*.db
+app/database/
+
+# Chroma DB
+rag_pipeline/vector_store/chroma_db/
+
+# Docker
+.dockerignore
+
+# IDE and OS
+.vscode/
+.idea/
+*.DS_Store
+
+# Dev-only
+requirements-dev.txt
