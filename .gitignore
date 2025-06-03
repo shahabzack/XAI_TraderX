@@ -18,13 +18,6 @@ xaitrade/
 logs/
 app/logs/
 
-# Database
-database/
-*.db
-app/database/
-
-# Chroma DB
-rag_pipeline/vector_store/chroma_db/
 
 # Docker
 .dockerignore
