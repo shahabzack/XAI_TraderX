@@ -196,7 +196,7 @@ def log_sell_trade(
             logger.error("Invalid trade type: %s", trade_type)
             raise ValueError("Trade type must be 'intraday' or 'long-term'")
 
-        conn = sqlite3.connect(DB_PATH, timeout=10)
+        conn = sqlite3.connect(DB_PATH, timeout=20)  # Increased timeout
         cursor = conn.cursor()
         cursor.execute("BEGIN")
 
@@ -295,6 +295,7 @@ def log_sell_trade(
         total_return = (entry_price * lot_size) + profit_loss
         logger.debug("Calculated: profit_loss=%s, total_return=%s", profit_loss, total_return)
 
+        exit_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if lot_size == open_lot_size:
             cursor.execute(
                 """
@@ -304,13 +305,39 @@ def log_sell_trade(
                 """,
                 (
                     price,
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    exit_time,
                     profit_loss,
                     trade_id,
                 ),
             )
             logger.info("Full closure for trade ID %s, status=CLOSED", trade_id)
         else:
+            # Create a new trade record for the partial exit
+            cursor.execute(
+                """
+                INSERT INTO trades (
+                    stock_name, action, entry_time, entry_price, exit_time, exit_price, 
+                    profit_loss, lot_size, trade_type, status, is_short
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CLOSED', ?)
+                """,
+                (
+                    stock_name,
+                    'SELL' if not is_short_trade else 'BUY',  # Opposite action for closing
+                    cursor.execute("SELECT entry_time FROM trades WHERE id = ?", (trade_id,)).fetchone()[0],
+                    entry_price,
+                    exit_time,
+                    price,
+                    profit_loss,
+                    lot_size,
+                    trade_type,
+                    is_short_trade,
+                ),
+            )
+            partial_trade_id = cursor.lastrowid
+            logger.info("Inserted partial exit trade ID %s: stock=%s, lot_size=%s", partial_trade_id, stock_name, lot_size)
+
+            # Update the original trade's lot_size
             new_lot_size = open_lot_size - lot_size
             if new_lot_size <= 0:
                 logger.error("Invalid new lot size: %s", new_lot_size)
@@ -321,16 +348,10 @@ def log_sell_trade(
             cursor.execute(
                 """
                 UPDATE trades 
-                SET lot_size = ?, exit_price = ?, exit_time = ?, profit_loss = ?
+                SET lot_size = ?
                 WHERE id = ?
                 """,
-                (
-                    new_lot_size,
-                    price,
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    profit_loss,
-                    trade_id,
-                ),
+                (new_lot_size, trade_id),
             )
             logger.info("Partial closure for trade ID %s, new_lot_size=%s", trade_id, new_lot_size)
 
@@ -356,14 +377,15 @@ def log_sell_trade(
             new_balance = 100000
         cursor.execute("UPDATE user_balance SET balance = ? WHERE id = 1", (new_balance,))
         conn.commit()
-        logger.info("Balance updated: new_balance=INR %s", new_balance)
+        logger.info("Balance updated: current_balance=INR %s, total_return=INR %s, new_balance=INR %s", 
+                    current_balance, total_return, new_balance)
 
         profit_loss_str = (
             f"profit of INR {profit_loss:.2f}" if profit_loss >= 0 else f"loss of INR {-profit_loss:.2f}"
         )
         return (
             True,
-            f"Trade closed for {stock_name}. {profit_loss_str.capitalize()} and INR {entry_price * lot_size:.2f} {'margin' if is_short_trade else 'investment'} returned. Total credited: INR {total_return:.2f}.",
+            f"Trade closed for {stock_name} ({lot_size} lots). {profit_loss_str.capitalize()} and INR {entry_price * lot_size:.2f} {'margin' if is_short_trade else 'investment'} returned. Total credited: INR {total_return:.2f}.",
         )
 
     except ValueError as e:
@@ -674,10 +696,11 @@ async def get_open_trades_endpoint():
 
 @app.get("/trade_history")
 async def get_trade_history():
-    """Fetch closed trade history."""
+    """Fetch closed trade history, including partial exits."""
     logger.debug("Fetching trade history")
     try:
         trade_history = get_all_trades()
+        # Include both CLOSED trades and partial exits (which are now separate CLOSED records)
         trade_history = [trade for trade in trade_history if trade["status"] == "CLOSED"]
         logger.info("Retrieved %s closed trades", len(trade_history))
         return {"trade_history": trade_history}
