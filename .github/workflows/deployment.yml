@@ -50,6 +50,6 @@ jobs:
             sudo docker run -d \
               --name xai-traderx-container \
               --env-file .env \
-              -p 8501:8501 \
+              -p 8501:8501 -p 8000:8000 \
               ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           EOF
