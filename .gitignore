@@ -29,3 +29,8 @@ app/logs/
 
 # Dev-only
 requirements-dev.txt
+
+# Ignore specific backup and utility scripts
+database/ac.py
+database/predictbackup.py
+database/stockbackup.py
