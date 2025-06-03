@@ -1,1 +1,56 @@
+name: Build and Deploy Xai-TraderX
 
+on:
+  push:
+    branches:
+      - master
+
+env:
+  IMAGE_NAME: xai-traderx
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest .
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Save EC2 PEM file
+        run: |
+          echo "${{ secrets.EC2_ACCESS_PEM }}" > xai_traderx.pem
+          chmod 400 xai_traderx.pem
+
+      - name: SSH and Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i xai_traderx.pem ${{ secrets.EC2_ACCESS_SSH_COMMAND }} <<EOF
+            echo "${{ secrets.APPLICATION_ENV }}" | sudo tee .env > /dev/null
+
+            sudo docker stop xai-traderx-container || true
+            sudo docker rm xai-traderx-container || true
+
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+            sudo docker run -d \
+              --name xai-traderx-container \
+              --env-file .env \
+              -p 8501:8501 \
+              ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          EOF
