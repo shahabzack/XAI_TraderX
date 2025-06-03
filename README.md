@@ -143,7 +143,6 @@ The goal is to provide reliable stock price predictions with transparency and in
 This project is licensed under the [MIT License](LICENSE).
 
 ## Portfolio & Contact
-Explore more projects at [https://shahabzack.github.io/Ds_portfolio/](https://shahabzack.github.io/Ds_portfolio/).  
-For questions, contact [shahabzack@example.com](mailto:shahabzack@example.com) or open a GitHub issue.
+Explore more projects at [https://shahabzack.github.io/Ds_portfolio/](https://shahabzack.github.io/Ds_portfolio/).
 
 Thank you for exploring **XAI Trader** — an intelligent stock trading assistant!
