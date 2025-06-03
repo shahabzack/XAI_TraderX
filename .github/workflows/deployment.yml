@@ -40,13 +40,15 @@ jobs:
 
       - name: SSH and Deploy to EC2
         env:
-          APPLICATION_ENV: ${{ secrets.APPLICATION_ENV }}  
+          APPLICATION_ENV: ${{ secrets.APPLICATION_ENV }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i xai_traderx.pem ${{ secrets.ACCESS_SSH_COMMAND }} << 'EOF'
-            echo "${APPLICATION_ENV}" | sudo tee .env > /dev/null
+          ssh -o StrictHostKeyChecking=no -i xai_traderx.pem ${{ secrets.ACCESS_SSH_COMMAND }} << EOF
+            echo "$APPLICATION_ENV" | tr -d '\r' | sudo tee .env > /dev/null
+
             sudo docker stop xai-traderx-container || true
             sudo docker rm xai-traderx-container || true
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
             sudo docker run -d \
               --name xai-traderx-container \
               --env-file .env \
