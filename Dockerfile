@@ -23,11 +23,14 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create directories for database and logs BEFORE copying database file
+RUN mkdir -p /app/database /app/logs
+
 # Copy project files
 COPY . .
 
-# Create directories for database and logs
-RUN mkdir -p /app/database /app/logs
+# Copy database file AFTER creating the directory
+COPY database/stock_data.db /app/database/stock_data.db
 
 # Copy supervisord configuration
 COPY supervisord.conf /etc/supervisord.conf
